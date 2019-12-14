@@ -1,17 +1,5 @@
 from datetime import datetime
-from flask import Flask, render_template, url_for, flash, redirect
-from flask_sqlalchemy import SQLAlchemy
-from forms import RegistrationForm, LoginForm
-app = Flask(__name__)
-
-#Create and set secret key that will prevent agains modify the cookies
-app.config['SECRET_KEY'] = '5791628bb0b13ce0c676dfde280ba245'
-#For setting location of out SQLAlchemy db file. Three slashes '///' means current directory so site.db file will be located in the same directory as flaskblog.py
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
-
-#Create sqlalchemy instance
-#Each class will be a separate table in database
-db = SQLAlchemy(app)
+from flaskblog import db
 
 #Each class will be a separate table in database
 #Create User model table
@@ -40,57 +28,3 @@ class Post(db.Model):
         return f"Post('{self.title}', '{self.date_posted}')"
     
     
-posts = [
-    {
-        'author': 'Corey Schafer',
-        'title': 'Blog Post 1',
-        'content': 'First post content',
-        'date_posted': 'April 20, 2018'
-    },
-    {
-        'author': 'Jane Doe',
-        'title': 'Blog Post 2',
-        'content': 'Second post content',
-        'date_posted': 'April 21, 2018'
-    }
-]
-
-
-@app.route("/")
-@app.route("/home")
-def home():
-    return render_template('home.html', posts=posts)
-
-
-@app.route("/about")
-def about():
-    return render_template('about.html', title='About')
-
-#Create registration route
-@app.route("/register", methods = ['GET','POST'])
-def register():
-    form = RegistrationForm()
-    if form.validate_on_submit():
-        flash(f"Account created for {form.username.data}!","success")
-        return redirect(url_for('home'))
-    return render_template('register.html', title = 'Register', form = form)
-
-#Create login route
-@app.route("/login", methods = ['GET','POST'])
-def login():
-    form = LoginForm()
-    if form.validate_on_submit():
-        if (form.email.data =="admin@blog.com") and (form.password.data =="12345"):
-            flash(f"You have been logged in !","success")
-            return redirect(url_for('home'))
-        else:
-            flash(f"Login unsuccessfull. Please check username and password !","danger")
-    return render_template('login.html', title = 'Login', form = form)
-
-
-#Create login route
-
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
