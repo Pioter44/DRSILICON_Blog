@@ -1,33 +1,22 @@
 import os
 import secrets
 from PIL import Image
-from flask import render_template, url_for, flash, redirect, request
+from flask import render_template, url_for, flash, redirect, request, abort
 from flaskblog import app, db, bcrypt
-from flaskblog.forms import RegistrationForm, LoginForm, UpdateAccountForm
+from flaskblog.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm
 from flaskblog.models import User,Post
 from flask_login import login_user #To manage user login session
 from flask_login import current_user, logout_user #To manage user login session
 from flask_login import login_required #will be used as a decoreator to make sure that user is log in
 
-posts = [
-    {
-        'author': 'Corey Schafer',
-        'title': 'Blog Post 1',
-        'content': 'First post content',
-        'date_posted': 'April 20, 2018'
-    },
-    {
-        'author': 'Jane Doe',
-        'title': 'Blog Post 2',
-        'content': 'Second post content',
-        'date_posted': 'April 21, 2018'
-    }
-]
-
 
 @app.route("/")
 @app.route("/home")
 def home():
+    
+    #Here I create new variable posts where I will store my queary from db about posts 
+    posts = Post.query.all()
+    
     return render_template('home.html', posts=posts)
 
 
@@ -137,4 +126,75 @@ def account():
     return render_template('account.html', title = 'Account', image_file = image_file, form = form) #here we are also passing some parameters to 'account.html' template for example image_file
     
     
+#Create post/new route - only visible if user is log in
+@app.route("/post/new", methods = ['GET','POST'])
+@login_required #this decorator will cause that user will have access to this subpage only if is log in
+def new_post():
+    
+    #Create instance of PostForm 
+    form = PostForm()
+    
+    #If form is valid then we can update our email or username and update it in decode
+    if form.validate_on_submit():
+        
+        #Save post to a db
+        post = Post(title=form.title.data, content=form.content.data, author = current_user)
+        #Save post to db
+        db.session.add(post)
+        db.session.commit()
+        
+        
+        flash("Your post has been created! ","success")
+        return redirect(url_for('home'))
+    
+    
+    return render_template('create_post.html', title = 'New Post', form = form, legend='New Post')
+    
+    
+#Create new route - that will take us to a specific post. Flask give us ability to add variable within route
+@app.route("/post/<int:post_id>")
+def post(post_id):
+    post = Post.query.get_or_404(post_id)
+    return render_template('post.html', title = post.title, post = post)
+    
+    
+#Create new route - that will take us to a specific post and allow us to update it
+@app.route("/post/<int:post_id>/update", methods = ['GET','POST'])
+@login_required #this decorator will cause that user will have access to this subpage only if is log in
+def update_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    
+    #The post can be updated only by author so we will use if for this purpose
+    if post.author != current_user:
+        abort(403)
+    form = PostForm()
+    
+    #If statment to accept update for a post and save it to db
+    if form.validate_on_submit():
+        post.title = form.title.data
+        post.content = form.content.data
+        #Save it to db. We dont need to do db.session.add() because this post/record is already in db so db.session.commit() is enougth here
+        db.session.commit()
+        flash(f"Your post has been updated! ","success")
+        return redirect(url_for('post', post_id = post.id))
+    elif request.method == 'GET':
+        form.title.data = post.title
+        form.content.data = post.content
+    
+    return render_template('create_post.html', title = 'Update Post', form = form, legend = 'Update Post')
+    
+#Create new route - that will for deleting route
+@app.route("/post/<int:post_id>/delete", methods = ['POST'])
+@login_required #this decorator will cause that user will have access to this subpage only if is log in
+def delete_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    
+    #The post can be updated only by author so we will use if for this purpose
+    if post.author != current_user:
+        abort(403)
+    
+    db.session.delete(post)
+    db.session.commit()
+    flash(f"Your post has been deleted! ","success")
+    return redirect(url_for('home'))
     
