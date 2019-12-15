@@ -11,12 +11,12 @@ def load_user(user_id):
 #Each class will be a separate table in database
 #Create User model table. Inherit from two classes. Class UserMixin is for managing user login session
 class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True, nullable=False) # column in table. This column will be a primary key column (id of the user)
+    id = db.Column(db.Integer, primary_key=True) # column in table. This column will be a primary key column (id of the user)
     username = db.Column(db.String(20),unique=True, nullable=False) #unique=True means that the username must be unique. nullable=False means that this field is mandatory
     email = db.Column(db.String(120),unique=True, nullable=False)
-    image_file = db.Column(db.String(120),unique=False, default='default.jpeg')  #For user image picture
-    password = db.Column(db.String(60),unique=False, nullable=False) #password will be hased and hased password will be 60 characters long. Here #unique=False and this means that the password not need to be unique (two diffrent users can have the same password)
-    post = db.relationship('Post', backref='author', lazy=True) #"Post table/module" has a back reference to a author (each 'post' need to have an author). backref allows to get a details of author for a given 'post'. lazy arguments decide when a database load data
+    image_file = db.Column(db.String(20),nullable=False, default='default.jpg')  #For user image picture
+    password = db.Column(db.String(60), nullable=False) #password will be hased and hased password will be 60 characters long. Here #unique=False and this means that the password not need to be unique (two diffrent users can have the same password)
+    posts = db.relationship('Post', backref='author', lazy=True) #"Post table/module" has a back reference to a author (each 'post' need to have an author). backref allows to get a details of author for a given 'post'. lazy arguments decide when a database load data
     
     #Deciding how the User database object will be printed
     def __repr__(self):

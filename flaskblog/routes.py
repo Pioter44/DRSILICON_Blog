@@ -1,6 +1,9 @@
+import os
+import secrets
+from PIL import Image
 from flask import render_template, url_for, flash, redirect, request
 from flaskblog import app, db, bcrypt
-from flaskblog.forms import RegistrationForm, LoginForm
+from flaskblog.forms import RegistrationForm, LoginForm, UpdateAccountForm
 from flaskblog.models import User,Post
 from flask_login import login_user #To manage user login session
 from flask_login import current_user, logout_user #To manage user login session
@@ -49,7 +52,7 @@ def register():
         #Save user to db
         db.session.add(user)
         db.session.commit()
-        flash(f"Your account has been created! You are now able to log in","success")
+        flash("Your account has been created! You are now able to log in","success")
         return redirect(url_for('login'))
     return render_template('register.html', title = 'Register', form = form)
 
@@ -90,11 +93,48 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
     
+#Function with logic to save used uploaded picture
+def save_picture(form_picture):
+    #To avoid problem with the same picture number lets rename picture with hashed value
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_picture.filename)
+    picture_fn = random_hex + f_ext
+    picture_path = os.path.join(app.root_path, 'static/profile_pics', picture_fn)
+    
+    #To resize picture in order to save space
+    output_size = (125,125)
+    i= Image.open(form_picture)
+    i.thumbnail(output_size)
+    i.save(picture_path)
+    
+    return picture_fn
+    
+    
+    
+    
 #Create account route - only visible if user is log in
-@app.route("/account")
+@app.route("/account", methods = ['GET','POST'])
 @login_required #this decorator will cause that user will have access to Account subpage only if is log in
 def account():
-    return render_template('account.html', title = 'Account')
+    form = UpdateAccountForm()
+    #If form is valid then we can update our email or username and update it in decode
+    if form.validate_on_submit():
+        
+        if form.picture.data:
+            picture_file = save_picture(form.picture.data)
+            current_user.image_file = picture_file
+            
+        current_user.username = form.username.data
+        current_user.email = form.email.data
+        db.session.commit()
+        flash(f"Your account has been updated! ","success")
+        return redirect(url_for('account'))
+    elif request.method == 'GET':
+        form.username.data = current_user.username
+        form.email.data = current_user.email
+        
+    image_file = url_for('static', filename = 'profile_pics/' + current_user.image_file)
+    return render_template('account.html', title = 'Account', image_file = image_file, form = form) #here we are also passing some parameters to 'account.html' template for example image_file
     
     
     
