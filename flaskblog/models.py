@@ -1,9 +1,16 @@
 from datetime import datetime
-from flaskblog import db
+from flaskblog import db, login_manager
+from flask_login import UserMixin #Class UserMixin is for managing user login session
+
+#Create decorated function that will 
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 
 #Each class will be a separate table in database
-#Create User model table
-class User(db.Model):
+#Create User model table. Inherit from two classes. Class UserMixin is for managing user login session
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True, nullable=False) # column in table. This column will be a primary key column (id of the user)
     username = db.Column(db.String(20),unique=True, nullable=False) #unique=True means that the username must be unique. nullable=False means that this field is mandatory
     email = db.Column(db.String(120),unique=True, nullable=False)
